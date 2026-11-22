@@ -561,20 +561,20 @@ function desenharNoticias(noticias) {
     lista.innerHTML = `<li class="vazio" style="display:block">Nenhuma notícia ainda.<br>Elas aparecem a qualquer momento e mexem nos preços.</li>`;
     return;
   }
-  const novas = [];
+  // Notícias novas ganham só uma animação na própria lista (classe "nova").
+  // Elas não geram pop-up: os pop-ups do canto ficam reservados para as
+  // ordens e as negociações dos outros jogadores, senão a tela fica poluída
+  // (sai uma notícia a cada ~20 s).
   lista.innerHTML = noticias.map((n) => {
     const chave = n.hora + n.texto;
     const nova = !estado.noticiasVistas.has(chave);
-    if (nova) { estado.noticiasVistas.add(chave); novas.push(n); }
+    estado.noticiasVistas.add(chave);
     return `
       <li class="${nova && !estado.primeiraCarga ? "nova" : ""}">
         <span class="noticia-texto">${esc(n.texto)}</span>
         <span class="noticia-meta">${n.hora} · <span class="noticia-tag">${n.ticker}</span> ${chipVar(n.variacao)}</span>
       </li>`;
   }).join("");
-  if (!estado.primeiraCarga) {
-    for (const n of novas) notificar("info", `Notícia · ${n.ticker} ${seta(n.variacao)} ${pct(n.variacao)}`, n.texto);
-  }
 }
 
 // ------------------------------------------------------------------ negociações de todos
