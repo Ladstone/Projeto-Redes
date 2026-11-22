@@ -18,7 +18,8 @@ padrão do Python.
 | `protocolo.py` | A parte de rede compartilhada: envia e recebe linhas por TCP com `send()`/`recv()` e monta/lê as respostas com código |
 | `servidor.py` | A lógica da bolsa (no topo) e o socket servidor: `socket → bind → listen → accept` (no final) |
 | `cliente.py` | O socket cliente: `socket → connect → send/recv → close` |
-
+| `ponte_web.py` | Ponte HTTP ↔ TCP: deixa o navegador usar o protocolo (veja abaixo) |
+| `web/` | Interface web (HTML, CSS e JavaScript puros, sem bibliotecas) |
 ## Como rodar
 
 Requer Python 3.8+.
@@ -27,8 +28,35 @@ Requer Python 3.8+.
 python servidor.py            # porta 5000 (ou: python servidor.py 6000)
 python cliente.py             # conecta em 127.0.0.1:5000
 python cliente.py 192.168.0.10 5000   # outra máquina da rede
-python cliente.py --debug     # mostra os bytes de cada send()/recv()
+python cliente.py --debug     # mostra os bytes de cada send()/recv()```
+
+### Interface web
+
+```bash
+python servidor.py            # terminal 1
+python ponte_web.py           # terminal 2  →  abra http://localhost:8080
 ```
+
+A ponte mostra também os endereços para os colegas abrirem pela rede
+(`http://<seu-IP>:8080`). Opções: `--porta-web 8080`, `--servidor 127.0.0.1:5000`, `--debug`.
+
+**Por que existe uma ponte?** Por segurança, navegadores não abrem conexões
+TCP "cruas", só HTTP/WebSocket. A ponte traduz:
+
+```
+Navegador ──HTTP/JSON──▶ ponte_web.py ──TCP, protocolo BVF──▶ servidor.py
+```
+
+Para o servidor, a ponte é só mais um cliente TCP: cada pessoa logada no
+navegador ganha a sua própria conexão TCP, e a ponte repassa os comandos
+(`LIST`, `BUY CAFE3 10`...) exatamente como o protocolo define. A página tem
+um **Console do protocolo** (botão "Protocolo") que mostra cada mensagem
+trocada e permite digitar comandos direto.
+
+Os clientes de terminal e web podem jogar juntos no mesmo
+servidor. Como o TCP aqui é "pedido → resposta" (o servidor só fala quando
+perguntam), as telas se atualizam enviando `LIST`, `PORTFOLIO`, `RANKING`,
+`NEWS` e `HISTORY` a cada poucos segundos.
 
 ## Como funciona a parte de rede
 
@@ -101,6 +129,7 @@ CCC última linha          usa espaço depois do código
 | `HELLO` | `<apelido>` | — | `200` | `405`, `406`, `409` |
 | `LIST` | — | não | `210` (várias linhas) | — |
 | `QUOTE` | `<ticker>` | não | `211` (várias linhas) | `404`, `405` |
+| `HISTORY` | `<ticker>` | não | `216` (várias linhas: `hh:mm:ss R$ preço`) | `404`, `405` |
 | `BUY` | `<ticker> <qtd>` | sim | `201` | `401`, `402`, `404`, `405` |
 | `SELL` | `<ticker> <qtd>` | sim | `202` | `401`, `403`, `404`, `405` |
 | `PORTFOLIO` | — | sim | `212` (várias linhas) | `401` |
@@ -117,7 +146,7 @@ CCC última linha          usa espaço depois do código
 | `200` | Identificação aceita |
 | `201` | Compra realizada |
 | `202` | Venda realizada |
-| `210`–`215` | Respostas de consulta (lista, cotação, carteira, ranking, notícias, ajuda) |
+| `210`–`216` | Respostas de consulta (lista, cotação, carteira, ranking, notícias, ajuda, histórico) |
 | `221` | Encerramento da conexão |
 | `400` | Comando vazio ou desconhecido |
 | `401` | É preciso se identificar com `HELLO` antes |

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BVF · Bolsa de Valores Fictícia</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233987e5'/%3E%3Cpath d='M7 21l6-6 4 4 8-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================================================ LOGIN -->
+  <section id="tela-login" class="login">
+    <div class="login-fundo" aria-hidden="true">
+      <svg id="login-onda" preserveAspectRatio="none"></svg>
+    </div>
+    <form id="form-login" class="login-card" autocomplete="off">
+      <div class="marca marca-grande">
+        <span class="marca-logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M7 21l6-6 4 4 8-9"/></svg>
+        </span>
+        <div>
+          <div class="marca-nome">Bolsa de Valores Fictícia</div>
+          <div class="marca-sub">Protocolo BVF/1.0 sobre TCP</div>
+        </div>
+      </div>
+
+      <h1>Entre no pregão</h1>
+      <p class="login-texto">Você começa com <strong>R$ 10.000,00</strong>. Compre barato, venda caro
+        e fique de olho nas notícias: elas mexem nos preços.</p>
+
+      <label class="campo">
+        <span>Seu apelido</span>
+        <input id="inp-apelido" maxlength="15" placeholder="ex.: ana" required
+               pattern="[A-Za-z0-9]+" title="Só letras e números, até 15 caracteres">
+      </label>
+      <button class="btn btn-primario btn-largo" id="btn-entrar" type="submit">
+        <span>Entrar no pregão</span>
+      </button>
+      <p id="login-erro" class="login-erro" role="alert" hidden></p>
+
+      <div class="login-rodape">
+        <span class="ponto-status" aria-hidden="true"></span>
+        Servidor da bolsa: <code id="login-servidor">…</code>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============================================================ APP -->
+  <div id="tela-app" class="app" hidden>
+
+    <header class="topo">
+      <div class="marca">
+        <span class="marca-logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M7 21l6-6 4 4 8-9"/></svg>
+        </span>
+        <div>
+          <div class="marca-nome">BVF</div>
+          <div class="marca-sub">Bolsa de Valores Fictícia</div>
+        </div>
+      </div>
+
+      <div class="topo-status">
+        <span class="pilula pilula-viva"><span class="ponto-vivo" aria-hidden="true"></span>Pregão aberto</span>
+        <span class="topo-relogio" id="relogio">--:--:--</span>
+        <span class="topo-latencia" title="Tempo de ida e volta de uma rodada de comandos">
+          latência <strong id="latencia">–</strong>
+        </span>
+      </div>
+
+      <div class="topo-acoes">
+        <button class="btn btn-fantasma" id="btn-console" type="button" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8"/></svg>
+          Protocolo
+          <span class="contador" id="console-contador">0</span>
+        </button>
+        <button class="btn btn-icone" id="btn-tema" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">
+          <svg class="ico-sol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="ico-lua" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <div class="usuario">
+          <span class="avatar" id="avatar">?</span>
+          <span class="usuario-nome" id="usuario-nome">—</span>
+        </div>
+        <button class="btn btn-fantasma" id="btn-sair" type="button">Sair</button>
+      </div>
+    </header>
+
+    <!-- faixa de cotações rolando -->
+    <div class="faixa" aria-label="Cotações">
+      <div class="faixa-trilho" id="faixa"></div>
+    </div>
+
+    <main class="conteudo">
+
+      <!-- números principais -->
+      <section class="indicadores">
+        <article class="cartao indicador indicador-heroi">
+          <div class="indicador-rotulo">Patrimônio total</div>
+          <div class="indicador-valor heroi" id="ind-patrimonio">—</div>
+          <div class="indicador-delta" id="ind-patrimonio-delta">—</div>
+        </article>
+        <article class="cartao indicador">
+          <div class="indicador-rotulo">Saldo em caixa</div>
+          <div class="indicador-valor" id="ind-saldo">—</div>
+          <div class="indicador-extra">disponível para comprar</div>
+        </article>
+        <article class="cartao indicador">
+          <div class="indicador-rotulo">Investido em ações</div>
+          <div class="indicador-valor" id="ind-investido">—</div>
+          <div class="indicador-extra" id="ind-investido-extra">nenhuma posição</div>
+        </article>
+        <article class="cartao indicador">
+          <div class="indicador-rotulo">Sua posição no ranking</div>
+          <div class="indicador-valor" id="ind-ranking">—</div>
+          <div class="indicador-extra" id="ind-ranking-extra">—</div>
+        </article>
+      </section>
+
+      <div class="grade">
+        <!-- coluna principal -->
+        <div class="coluna-principal">
+
+          <section class="cartao grafico-cartao">
+            <header class="grafico-topo">
+              <div>
+                <div class="grafico-ativo">
+                  <span class="ponto-serie" id="graf-ponto"></span>
+                  <h2 id="graf-ticker">—</h2>
+                  <span class="grafico-empresa" id="graf-empresa"></span>
+                </div>
+                <div class="grafico-preco">
+                  <span id="graf-preco">—</span>
+                  <span class="variacao" id="graf-var"></span>
+                </div>
+              </div>
+              <div class="grafico-meta">
+                <div><span>Abertura</span><strong id="graf-abertura">—</strong></div>
+                <div><span>Máxima</span><strong id="graf-max">—</strong></div>
+                <div><span>Mínima</span><strong id="graf-min">—</strong></div>
+              </div>
+            </header>
+            <div class="grafico" id="grafico">
+              <svg id="grafico-svg" role="img" aria-label="Gráfico de preço"></svg>
+              <div class="dica" id="grafico-dica" hidden></div>
+            </div>
+            <div class="grafico-rodape">Últimos 10 minutos · um ponto a cada 5 s · dados do comando <code>HISTORY</code></div>
+          </section>
+
+          <section class="cartao">
+            <header class="cartao-topo">
+              <h3>Mercado</h3>
+              <span class="cartao-sub">clique numa ação para ver o gráfico</span>
+            </header>
+            <div class="tabela-rolagem">
+              <table class="tabela-mercado">
+                <thead>
+                  <tr>
+                    <th>Ativo</th>
+                    <th class="num">Último</th>
+                    <th class="num">Variação</th>
+                    <th class="col-tendencia">Tendência</th>
+                    <th class="num col-posicao">Você tem</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="mercado"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- coluna lateral -->
+        <aside class="coluna-lateral">
+
+          <section class="cartao boleta" id="boleta">
+            <div class="abas-ordem" role="tablist">
+              <button type="button" role="tab" class="aba-ordem ativa" data-lado="BUY" aria-selected="true">Comprar</button>
+              <button type="button" role="tab" class="aba-ordem" data-lado="SELL" aria-selected="false">Vender</button>
+            </div>
+
+            <label class="campo">
+              <span>Ativo</span>
+              <select id="ord-ticker"></select>
+            </label>
+
+            <label class="campo">
+              <span>Quantidade</span>
+              <div class="passo">
+                <button type="button" class="passo-btn" data-delta="-1" aria-label="Diminuir">−</button>
+                <input id="ord-qtd" type="number" min="1" step="1" value="10" inputmode="numeric">
+                <button type="button" class="passo-btn" data-delta="1" aria-label="Aumentar">+</button>
+              </div>
+            </label>
+            <div class="atalhos">
+              <button type="button" class="atalho" data-qtd="10">10</button>
+              <button type="button" class="atalho" data-qtd="50">50</button>
+              <button type="button" class="atalho" data-qtd="100">100</button>
+              <button type="button" class="atalho" data-qtd="max">Máx</button>
+            </div>
+
+            <dl class="resumo">
+              <div><dt>Preço atual</dt><dd id="ord-preco">—</dd></div>
+              <div><dt id="ord-disp-rotulo">Saldo disponível</dt><dd id="ord-disp">—</dd></div>
+              <div class="resumo-total"><dt>Total estimado</dt><dd id="ord-total">—</dd></div>
+            </dl>
+            <p class="aviso" id="ord-aviso" hidden></p>
+
+            <button type="button" class="btn btn-largo btn-comprar" id="ord-enviar">Comprar</button>
+            <p class="boleta-protocolo">Envia <code id="ord-comando">BUY …</code></p>
+          </section>
+
+          <section class="cartao">
+            <header class="cartao-topo">
+              <h3>Minha carteira</h3>
+              <span class="cartao-sub" id="cart-total"></span>
+            </header>
+            <div class="alocacao" id="alocacao" role="img" aria-label="Distribuição do patrimônio"></div>
+            <ul class="legenda" id="alocacao-legenda"></ul>
+            <ul class="posicoes" id="posicoes"></ul>
+          </section>
+
+          <section class="cartao">
+            <header class="cartao-topo">
+              <h3>Ranking</h3>
+              <span class="cartao-sub" id="rank-total"></span>
+            </header>
+            <ol class="ranking" id="ranking"></ol>
+          </section>
+
+          <section class="cartao">
+            <header class="cartao-topo">
+              <h3>Notícias</h3>
+              <span class="pilula pilula-viva pilula-pequena"><span class="ponto-vivo" aria-hidden="true"></span>ao vivo</span>
+            </header>
+            <ul class="noticias" id="noticias"></ul>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <!-- console do protocolo -->
+    <section class="console" id="console" hidden>
+      <header class="console-topo">
+        <div class="console-titulo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8"/></svg>
+          Console do protocolo
+          <span class="console-sub">mensagens BVF/1.0 trocadas com o servidor (via ponte)</span>
+        </div>
+        <div class="console-controles">
+          <label class="interruptor">
+            <input type="checkbox" id="console-auto">
+            <span>mostrar atualizações automáticas</span>
+          </label>
+          <button type="button" class="btn btn-fantasma btn-pequeno" id="console-limpar">Limpar</button>
+          <button type="button" class="btn btn-icone btn-pequeno" id="console-fechar" aria-label="Fechar console">✕</button>
+        </div>
+      </header>
+      <div class="console-corpo" id="console-corpo"></div>
+      <form class="console-entrada" id="console-form" autocomplete="off">
+        <span class="console-prompt">&gt;</span>
+        <input id="console-input" placeholder="digite um comando do protocolo, ex.: QUOTE CAFE3 ou HELP" spellcheck="false">
+        <button type="submit" class="btn btn-primario btn-pequeno">Enviar</button>
+      </form>
+    </section>
+
+    <!-- aviso de conexão perdida -->
+    <div class="caiu" id="caiu" hidden>
+      <div class="caiu-card cartao">
+        <h3>Conexão perdida</h3>
+        <p>O servidor da bolsa não respondeu. Ele pode ter sido desligado.</p>
+        <button type="button" class="btn btn-primario" id="btn-reconectar">Entrar de novo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notificacoes" id="notificacoes" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -49,8 +49,24 @@ ACOES = {
     "ROBO3": {"nome": "Robôs do Nordeste",         "preco": 33.20},
     "SONO3": {"nome": "Sono Profundo Colchões",    "preco": 19.90},
 }
+HISTORICO_MAX = 120       # pontos guardados por ação (120 x 5 s = 10 minutos)
+
+
+def passo_aleatorio(preco):
+    """Um "tique" do mercado: o preço anda um pouquinho para cima ou para baixo."""
+    return max(PRECO_MINIMO, round(preco * (1 + random.gauss(0, 0.02)), 2))
+
+
+# Inventa 5 minutos de pregão anteriores, para os gráficos já começarem com dados.
+_agora = time.time()
 for dados in ACOES.values():
     dados["abertura"] = dados["preco"]
+    dados["historico"] = []          # lista de (hora "hh:mm:ss", preço)
+    for i in range(60, 0, -1):
+        hora = time.strftime("%H:%M:%S", time.localtime(_agora - i * INTERVALO_PRECOS))
+        dados["historico"].append((hora, dados["preco"]))
+        dados["preco"] = passo_aleatorio(dados["preco"])
+    dados["historico"].append((time.strftime("%H:%M:%S"), dados["preco"]))
 
 NOTICIAS_BOAS = [
     "{nome} anuncia lucro recorde!",
@@ -105,8 +121,7 @@ def atualizar_mercado():
         time.sleep(INTERVALO_PRECOS)
         with trava:
             for dados in ACOES.values():
-                dados["preco"] = max(PRECO_MINIMO,
-                                     round(dados["preco"] * (1 + random.gauss(0, 0.02)), 2))
+                dados["preco"] = passo_aleatorio(dados["preco"])
 
             if random.random() < CHANCE_NOTICIA:
                 ticker = random.choice(list(ACOES))
@@ -125,6 +140,11 @@ def atualizar_mercado():
                 del noticias[:-20]   # guarda só as 20 mais recentes
                 print("NOTÍCIA:", noticias[-1])
 
+            hora = time.strftime("%H:%M:%S")
+            for dados in ACOES.values():
+                dados["historico"].append((hora, dados["preco"]))
+                del dados["historico"][:-HISTORICO_MAX]
+
 
 # ------------------------------------------------------------ comandos
 
@@ -133,6 +153,7 @@ AJUDA = [
     "HELLO <apelido>        entra no jogo (obrigatório para negociar)",
     "LIST                   lista todas as ações e preços",
     "QUOTE <ticker>         mostra detalhes de uma ação",
+    "HISTORY <ticker>       histórico de preços (últimos 10 minutos)",
     "BUY <ticker> <qtd>     compra ações",
     "SELL <ticker> <qtd>    vende ações",
     "PORTFOLIO              mostra seu saldo e suas ações",
@@ -186,6 +207,19 @@ def cmd_quote(sessao, args):
             f"VARIAÇÃO:    {variacao(d['preco'], d['abertura']):+.2f}%",
         ]
     return resposta(211, linhas)
+
+
+def cmd_history(sessao, args):
+    if len(args) != 1:
+        return resposta(405, "USO: HISTORY <ticker>")
+    ticker = args[0].upper()
+    with trava:
+        if ticker not in ACOES:
+            return resposta(404, f"AÇÃO {ticker} NÃO ENCONTRADA")
+        pontos = list(ACOES[ticker]["historico"])
+    linhas = [f"{ticker} {len(pontos)} PONTOS"]
+    linhas += [f"{hora} {brl(preco)}" for hora, preco in pontos]
+    return resposta(216, linhas)
 
 
 def ler_ordem(args, comando):
@@ -282,6 +316,7 @@ COMANDOS = {
     "HELLO":     (cmd_hello, False),
     "LIST":      (cmd_list, False),
     "QUOTE":     (cmd_quote, False),
+    "HISTORY":   (cmd_history, False),
     "BUY":       (cmd_buy, True),
     "SELL":      (cmd_sell, True),
     "PORTFOLIO": (cmd_portfolio, True),
