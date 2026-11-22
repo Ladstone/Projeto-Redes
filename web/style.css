@@ -443,6 +443,26 @@ input:focus-visible, select:focus-visible, .passo-btn:focus-visible {
 .noticia-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tinta-3); }
 .noticia-tag { font-weight: 700; color: var(--tinta-2); }
 
+/* ------------------------------------------------------------ negociações */
+.negociacoes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.negociacoes li {
+  display: grid; grid-template-columns: 30px 1fr auto; gap: 2px 12px; align-items: center;
+  padding: 10px 0; border-top: 1px solid var(--borda);
+}
+.negociacoes li:first-child { border-top: 0; padding-top: 0; }
+.negociacoes li.nova { animation: entrar .5s ease; }
+.negociacoes .avatar { grid-row: span 2; width: 30px; height: 30px; font-size: 12px; }
+.neg-texto { font-size: 13.5px; }
+.neg-texto strong { font-weight: 700; }
+.neg-meta { font-size: 12px; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+.neg-total { grid-row: span 2; text-align: right; font-weight: 650; font-size: 13px; font-variant-numeric: tabular-nums; }
+.neg-tipo {
+  display: inline-block; padding: 1px 7px; border-radius: 5px; margin-right: 4px;
+  font-size: 10.5px; font-weight: 750; letter-spacing: .04em;
+}
+.neg-tipo.compra { background: var(--sobe-fundo); color: var(--sobe); }
+.neg-tipo.venda  { background: var(--cai-fundo);  color: var(--cai); }
+
 /* ------------------------------------------------------------ console do protocolo */
 .console {
   position: fixed; left: 24px; right: 24px; bottom: 16px; z-index: 30;

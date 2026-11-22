@@ -43,6 +43,7 @@ const estado = {
   carteira: { saldo: 0, posicoes: [], patrimonio: 0, variacao: 0 },
   ranking: [],
   noticiasVistas: new Set(),
+  negociacoesVistas: new Set(),
   primeiraCarga: true,
   selecionada: null,
   lado: "BUY",
@@ -107,6 +108,10 @@ const RE_PATRIM    = /^PATRIMÔNIO TOTAL: R\$ ([\d.,]+) \(([+-][\d.]+)%\)/;
 const RE_RANKING   = /^\s*(\d+)\.\s+(\S+)\s+R\$ ([\d.,]+)\s+\(([+-][\d.]+)%\)/;
 const RE_NOTICIA   = /^\[(\d\d:\d\d:\d\d)\] (.*) \((\S+) ([+-]?[\d.]+)%\)$/;
 const RE_HISTORICO = /^(\d\d:\d\d:\d\d) R\$ ([\d.,]+)$/;
+const RE_NEGOCIO   = /^\[(\d\d:\d\d:\d\d)\] (\S+) (COMPROU|VENDEU) (\d+) (\S+) A R\$ ([\d.,]+)$/;
+
+const lerNegociacoes = (linhas) => linhas.slice(1).map((l) => l.match(RE_NEGOCIO)).filter(Boolean)
+  .map((m) => ({ hora: m[1], nome: m[2], compra: m[3] === "COMPROU", qtd: +m[4], ticker: m[5], preco: lerBRL(m[6]) }));
 
 function lerLista(linhas) {
   return linhas.slice(1).map((l) => l.match(RE_ACAO)).filter(Boolean).map((m) => {
@@ -154,7 +159,7 @@ async function ciclo() {
       if (!r) return;
       aplicarLista(r.LIST);
     }
-    const comandos = ["LIST", "PORTFOLIO", "RANKING", "NEWS", ...estado.acoes.map((a) => `HISTORY ${a.ticker}`)];
+    const comandos = ["LIST", "PORTFOLIO", "RANKING", "NEWS", "TRADES", ...estado.acoes.map((a) => `HISTORY ${a.ticker}`)];
     const r = await enviarComandos(comandos, true);
     if (!r) return;
 
@@ -166,8 +171,10 @@ async function ciclo() {
     estado.carteira = lerCarteira(r.PORTFOLIO.linhas);
     estado.ranking = lerRanking(r.RANKING.linhas);
     const noticias = lerNoticias(r.NEWS.linhas);
+    const negociacoes = r.TRADES ? lerNegociacoes(r.TRADES.linhas) : [];
 
     desenharTudo(noticias);
+    desenharNegociacoes(negociacoes);
     estado.primeiraCarga = false;
   } finally {
     estado.ocupado = false;
@@ -567,6 +574,37 @@ function desenharNoticias(noticias) {
   }).join("");
   if (!estado.primeiraCarga) {
     for (const n of novas) notificar("info", `Notícia · ${n.ticker} ${seta(n.variacao)} ${pct(n.variacao)}`, n.texto);
+  }
+}
+
+// ------------------------------------------------------------------ negociações de todos
+
+function desenharNegociacoes(negociacoes) {
+  const lista = $("#negociacoes");
+  if (!negociacoes.length) {
+    lista.innerHTML = `<li class="vazio" style="display:block">Ninguém negociou ainda.<br>As compras e vendas de todos aparecem aqui.</li>`;
+    return;
+  }
+  const novas = [];
+  lista.innerHTML = negociacoes.map((n) => {
+    const chave = `${n.hora}|${n.nome}|${n.compra}|${n.qtd}|${n.ticker}|${n.preco}`;
+    const nova = !estado.negociacoesVistas.has(chave);
+    if (nova) { estado.negociacoesVistas.add(chave); novas.push(n); }
+    const eu = n.nome === estado.apelido;
+    return `
+      <li class="${nova && !estado.primeiraCarga ? "nova" : ""}">
+        <span class="avatar">${esc(n.nome.slice(0, 1))}</span>
+        <span class="neg-texto"><span class="neg-tipo ${n.compra ? "compra" : "venda"}">${n.compra ? "COMPRA" : "VENDA"}</span>
+          <strong>${esc(n.nome)}${eu ? " (você)" : ""}</strong> ${n.compra ? "comprou" : "vendeu"} ${n.qtd} <strong>${n.ticker}</strong></span>
+        <span class="neg-total">${brl(n.qtd * n.preco)}</span>
+        <span class="neg-meta">${n.hora} · a ${brl(n.preco)} cada</span>
+      </li>`;
+  }).join("");
+  if (!estado.primeiraCarga) {
+    for (const n of novas.filter((n) => n.nome !== estado.apelido)) {   // as minhas já têm alerta próprio
+      notificar("info", `${n.nome} ${n.compra ? "comprou" : "vendeu"} ${n.ticker}`,
+        `${n.qtd} ações a ${brl(n.preco)} (total ${brl(n.qtd * n.preco)})`);
+    }
   }
 }
 

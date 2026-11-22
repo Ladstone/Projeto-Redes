@@ -135,6 +135,7 @@ CCC última linha          usa espaço depois do código
 | `PORTFOLIO` | — | sim | `212` (várias linhas) | `401` |
 | `RANKING` | — | não | `213` (várias linhas) | — |
 | `NEWS` | — | não | `214` (várias linhas) | — |
+| `TRADES` | — | não | `217` (várias linhas: `[hh:mm:ss] ana COMPROU 10 CAFE3 A R$ 25,00`) | — |
 | `HELP` | — | não | `215` (várias linhas) | — |
 | `BYE` | — | não | `221` e o servidor fecha a conexão | — |
 
@@ -146,7 +147,7 @@ CCC última linha          usa espaço depois do código
 | `200` | Identificação aceita |
 | `201` | Compra realizada |
 | `202` | Venda realizada |
-| `210`–`216` | Respostas de consulta (lista, cotação, carteira, ranking, notícias, ajuda, histórico) |
+| `210`–`217` | Respostas de consulta (lista, cotação, carteira, ranking, notícias, ajuda, histórico, negociações) |
 | `221` | Encerramento da conexão |
 | `400` | Comando vazio ou desconhecido |
 | `401` | É preciso se identificar com `HELLO` antes |

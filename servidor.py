@@ -84,6 +84,7 @@ NOTICIAS_RUINS = [
 jogadores = {}        # nome -> {"saldo": float, "carteira": {ticker: qtd}}
 conectados = set()    # nomes com sessão ativa no momento
 noticias = []         # lista de strings "[hh:mm:ss] texto"
+negociacoes = []      # lista de strings "[hh:mm:ss] ana COMPROU 10 CAFE3 A R$ 25,00"
 trava = threading.Lock()
 
 
@@ -159,6 +160,7 @@ AJUDA = [
     "PORTFOLIO              mostra seu saldo e suas ações",
     "RANKING                classificação dos investidores",
     "NEWS                   últimas notícias do mercado",
+    "TRADES                 últimas compras e vendas de todos os jogadores",
     "HELP                   mostra esta ajuda",
     "BYE                    encerra a conexão",
 ]
@@ -234,6 +236,14 @@ def ler_ordem(args, comando):
     return ticker, int(args[1]), None
 
 
+def registrar_negociacao(nome, verbo, qtd, ticker, preco):
+    """Guarda a negociação para o comando TRADES. Chamar com a trava já pega."""
+    texto = f"[{time.strftime('%H:%M:%S')}] {nome} {verbo} {qtd} {ticker} A {brl(preco)}"
+    negociacoes.append(texto)
+    del negociacoes[:-30]          # guarda só as 30 mais recentes
+    print("NEGOCIAÇÃO:", texto)
+
+
 def cmd_buy(sessao, args):
     ticker, qtd, erro = ler_ordem(args, "BUY")
     if erro:
@@ -248,6 +258,7 @@ def cmd_buy(sessao, args):
         jogador["saldo"] = round(jogador["saldo"] - custo, 2)
         jogador["carteira"][ticker] = jogador["carteira"].get(ticker, 0) + qtd
         saldo = jogador["saldo"]
+        registrar_negociacao(sessao["nome"], "COMPROU", qtd, ticker, preco)
     return resposta(201, f"COMPROU {qtd} {ticker} A {brl(preco)} "
                          f"(TOTAL {brl(custo)}). SALDO: {brl(saldo)}")
 
@@ -268,6 +279,7 @@ def cmd_sell(sessao, args):
         if jogador["carteira"][ticker] == 0:
             del jogador["carteira"][ticker]
         saldo = jogador["saldo"]
+        registrar_negociacao(sessao["nome"], "VENDEU", qtd, ticker, preco)
     return resposta(202, f"VENDEU {qtd} {ticker} A {brl(preco)} "
                          f"(TOTAL {brl(valor)}). SALDO: {brl(saldo)}")
 
@@ -307,6 +319,14 @@ def cmd_news(sessao, args):
     return resposta(214, ["ÚLTIMAS NOTÍCIAS"] + ultimas[::-1])
 
 
+def cmd_trades(sessao, args):
+    with trava:
+        ultimas = negociacoes[-10:]
+    if not ultimas:
+        return resposta(217, "NENHUMA NEGOCIAÇÃO AINDA")
+    return resposta(217, ["ÚLTIMAS NEGOCIAÇÕES"] + ultimas[::-1])   # mais recente primeiro
+
+
 def cmd_help(sessao, args):
     return resposta(215, AJUDA)
 
@@ -322,6 +342,7 @@ COMANDOS = {
     "PORTFOLIO": (cmd_portfolio, True),
     "RANKING":   (cmd_ranking, False),
     "NEWS":      (cmd_news, False),
+    "TRADES":    (cmd_trades, False),
     "HELP":      (cmd_help, False),
 }
 
