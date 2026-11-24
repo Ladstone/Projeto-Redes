@@ -57,7 +57,7 @@ def passo_aleatorio(preco):
     return max(PRECO_MINIMO, round(preco * (1 + random.gauss(0, 0.02)), 2))
 
 
-# Inventa 5 minutos de pregão anteriores, para os gráficos já começarem com dados.
+# Inventa 5 minutos de mercado anteriores, para os gráficos já começarem com dados.
 _agora = time.time()
 for dados in ACOES.values():
     dados["abertura"] = dados["preco"]
